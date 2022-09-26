@@ -39,7 +39,10 @@ Process StartLeakProcess()
         "XamMacLeaks"
     );
 
-    var psi = new ProcessStartInfo(path).ConfigureEventPipe(GetOutputTraceFile());
+    var psi = new ProcessStartInfo(path)
+        .ConfigureEventPipe(GetOutputTraceFile())
+        .ConfigureSuspendRuntime();
+
     var process = Process.Start(psi);
 
     Debug.Assert(process != null);
