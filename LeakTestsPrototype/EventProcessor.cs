@@ -31,6 +31,7 @@ sealed class EventProcessor
         return source;
     }
 
+    // TODO: Split this, we want some flexibility.
     public async Task Stream(CancellationToken token)
     {
         // *shakes fist at dotnet internal diagnostics port API*
@@ -41,24 +42,31 @@ sealed class EventProcessor
         using var session = client.StartEventPipeSession(KnownEventPipeProviders.GarbageCollection);
         using var source = CreateEventSource(session, buffer);
 
+        using var _ = token.Register(() => source.StopProcessing());
+
         var processTask = Task.Run(() => source.SafeProcess(), token);
-        var inputTask = Task.Run(() => Console.Console.WaitForUserInput("Running event pipe session, press Enter to exit..."), token);
 
         // Needed because we configured it to suspend.
         client.ResumeRuntime();
 
         var procs = source.Processes();
 
-        await Task.WhenAny(processTask, inputTask);
+        try
+        {
+            await processTask.WaitAsync(token);
+        }
+        catch
+        {
+            // Interrupted.
+        }
 
-        Console.MarkupLine("[dim]Started writing input[/]");
+        await session.StopAsync(token);
+
+        Console.MarkupLine("[dim]Started writing output[/]");
 
         File.WriteAllText("pipeoutput", buffer.ToString());
 
         Console.MarkupLine("[underline]Done writing output[/]");
-
-        source.StopProcessing();
-        await session.StopAsync(token);
     }
 }
 

@@ -7,7 +7,7 @@ static class AnsiConsoleExtensions
 {
     public static async Task WaitForUserInput(this IAnsiConsole console, string prompt)
     {
-        await Console.Status().StartAsync(prompt, async ctx =>
+        await console.Status().StartAsync(prompt, async ctx =>
         {
             while (System.Console.ReadKey().Key != ConsoleKey.Enter)
             {
