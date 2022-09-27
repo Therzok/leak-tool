@@ -1,0 +1,1 @@
+﻿https://github.com/dotnet/diagnostics/tree/51def1cd1eaf9b15b5b4dccea31c013970dfd0ea/src/Tools/dotnet-gcdump/DotNetHeapDump
