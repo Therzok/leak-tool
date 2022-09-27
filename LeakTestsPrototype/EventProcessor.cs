@@ -17,16 +17,11 @@ sealed class EventProcessor
         _processId = processId;
     }
 
-    static EventPipeEventSource CreateEventSource(EventPipeSession session, StringBuilder sb)
+    static EventPipeEventSource CreateEventSource(EventPipeSession session)
     {
         var source = new EventPipeEventSource(session.EventStream);
-        source.NeedLoadedDotNetRuntimes();
 
-        // Process all events by default.
-        source.Clr.All += (TraceEvent obj) =>
-        {
-            obj.ToXml(sb);
-        };
+        source.NeedLoadedDotNetRuntimes();
 
         return source;
     }
@@ -40,7 +35,13 @@ sealed class EventProcessor
         var buffer = new StringBuilder();
 
         using var session = client.StartEventPipeSession(KnownEventPipeProviders.GarbageCollection);
-        using var source = CreateEventSource(session, buffer);
+        using var source = CreateEventSource(session);
+
+        // Process all events by default.
+        source.Clr.All += (TraceEvent obj) =>
+        {
+            obj.ToXml(buffer);
+        };
 
         using var _ = token.Register(() => source.StopProcessing());
 
@@ -60,7 +61,8 @@ sealed class EventProcessor
             // Interrupted.
         }
 
-        await session.StopAsync(token);
+        // Just wait for it to end.
+        await session.StopAsync(CancellationToken.None);
 
         Console.MarkupLine("[dim]Started writing output[/]");
 
