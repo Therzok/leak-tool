@@ -11,23 +11,6 @@ using Spectre.Console;
 
 using var process = StartLeakProcess(out _);
 
-#if V1
-
-using var cts = new CancellationTokenSource();
-var dumpTask = Task.Run(async () =>
-{
-    await Console.Console.WaitForUserInput("Running event pipe session, press Enter to stop processing...");
-
-    cts.Cancel();
-}, CancellationToken.None);
-
-var processor = new EventProcessor(process.Id);
-var graph = await processor.Stream(cts.Token);
-
-Debug.Assert(graph != null);
-
-#else
-
 var graph = new MemoryGraph(50000);
 DotNetHeapInfo heapInfo = new DotNetHeapInfo();
 
@@ -49,8 +32,6 @@ var dumpTask = Task.Run(async () =>
 
 new DiagnosticsClient(process.Id).ResumeRuntime();
 
-#endif
-
 await dumpTask;
 
 process.Kill();
@@ -59,8 +40,6 @@ process.WaitForExit();
 AnsiConsole.Write(graph.ToTable());
 
 // graph.DumpNormalized can be used to output the GC graph xml
-
-#if !V1
 
 var refGraph = new RefGraph(graph);
 var spanningTree = new SpanningTree(graph, TextWriter.Null);
@@ -91,8 +70,6 @@ void PrintDetails(string typeName)
 
     //spanningTree.PrintNodes(objects, nodeStorage, typeStorage);
 }
-
-#endif
 
 static string GetOutputTraceFile()
 {
