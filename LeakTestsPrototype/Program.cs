@@ -69,54 +69,15 @@ var refStorage = refGraph.AllocNodeStorage();
 var typeStorage = graph.AllocTypeNodeStorage();
 var nodeStorage = graph.AllocNodeStorage();
 
-static void PrintNode(Graph graph, RefGraph refGraph, NodeIndex index, int depth, Node nodeStorage, NodeType typeStorage, RefNode refStorage)
-{
-    var node = graph.GetNode(index, nodeStorage);
-    var type = graph.GetType(node.TypeIndex, typeStorage);
-
-    Console.Write(new string(' ', depth));
-    Console.MarkupLineInterpolated($"[dim]->[/] {type.Name}");
-
-    var refNode = refGraph.GetNode(index, refStorage);
-    for (var child = refNode.GetFirstChildIndex();
-        child != NodeIndex.Invalid;
-        child = refNode.GetNextChildIndex())
-    {
-        PrintNode(graph, refGraph, child, depth + 2, nodeStorage, typeStorage, refStorage);
-    }
-}
-
-PrintNode(graph, refGraph, objects[0], 0, nodeStorage, typeStorage, refStorage);
+refGraph.PrintRetentionGraph(graph, new HashSet<NodeIndex>(), objects[0], 0, nodeStorage, typeStorage, refStorage);
 
 Console.WriteLine();
 Console.Write(new Rule("Path to root"));
 Console.WriteLine();
 
-bool doneOnce = false;
-spanningTree.ForEach(index =>
-{
-    if (doneOnce || !objects.Contains(index))
-    {
-        return;
-    }
+spanningTree.PrintNodes(objects, nodeStorage, typeStorage);
 
-    while (index != NodeIndex.Invalid)
-    {
-        doneOnce = true;
 
-        // This should get us a path to a root.
-        var node = graph.GetNode(index, nodeStorage);
-        var type = graph.GetType(node.TypeIndex, typeStorage);
-
-        Console.WriteLine(type.Name);
-
-        index = spanningTree.Parent(index);
-
-        Console.Markup("[dim] -> [/]");
-    }
-
-    Console.WriteLine();
-});
 
 #endif
 
