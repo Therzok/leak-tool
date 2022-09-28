@@ -2,16 +2,17 @@ using ObjCRuntime;
 
 namespace XamMacLeaks;
 
-public partial class ViewController : NSViewController {
+public partial class ViewController : NSViewController
+{
 	readonly List<NSObject> _leaks = new();
 
-	protected ViewController (NativeHandle handle) : base (handle)
+	protected ViewController(NativeHandle handle) : base(handle)
 	{
 	}
 
-	public override void ViewDidLoad ()
+	public override void ViewDidLoad()
 	{
-		base.ViewDidLoad ();
+		base.ViewDidLoad();
 
 
 		// Do any additional setup after loading the view.
@@ -31,20 +32,39 @@ public partial class ViewController : NSViewController {
 			for (int i = 0; i < 10000; ++i)
 			{
 				_leaks.Add(new MyObject());
+				_ = new CycleObject();
+				_ = new CycleObjectNative();
 			}
-
-			if (iter % 500 == 0)
-			{
-                GC.Collect(2);
-            }
-        }
+		}
 	}
 
-	class MyObject : NSObject { }
+	class MyObject : NSView { }
+	class CycleObjectNative : NSView
+	{
+		[Export("selfNative")]
+		public CycleObjectNative SelfCycle { get; }
 
-	public override NSObject RepresentedObject {
+		public CycleObjectNative()
+		{
+			SelfCycle = this;
+		}
+
+	}
+	class CycleObject : NSView
+	{
+		public CycleObject SelfCycle { get; }
+
+		public CycleObject()
+		{
+			SelfCycle = this;
+		}
+	}
+
+	public override NSObject RepresentedObject
+	{
 		get => base.RepresentedObject;
-		set {
+		set
+		{
 			base.RepresentedObject = value;
 
 			// Update the view, if already loaded.

@@ -1,9 +1,18 @@
 ﻿# Implementation details
 
 This implementation reuses most of dotnet gcdump for collecting the GC heap from the process
-via the event pipe provider set up by gcdump.
+via the event pipe provider set up by gcdump. The heap dump collects a Memory Graph
 
-Then a RefGraph is created for objects of a given type and traversed and printed.
+ MemoryGraph, which contains the in-memory view of the object references. A RefGraph
+can then be constructed for a given type, which contains the inverse references (retention graph).
+
+The CLI tool first outputs the table of live objects at a given gc dump, then prints out the retention graph
+for a given object.
+
+One possible improvement would be to create an associated Type graph for the ref graph, which would
+then be used to group references with the same paths to roots.
+
+
 
 TODO: Dedup
 

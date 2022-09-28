@@ -12,6 +12,7 @@ using Spectre.Console;
 using var process = StartLeakProcess(out _);
 
 #if V1
+
 using var cts = new CancellationTokenSource();
 var dumpTask = Task.Run(async () =>
 {
@@ -22,12 +23,13 @@ var dumpTask = Task.Run(async () =>
 
 var processor = new EventProcessor(process.Id);
 var graph = await processor.Stream(cts.Token);
+
+Debug.Assert(graph != null);
+
 #else
+
 var graph = new MemoryGraph(50000);
 DotNetHeapInfo heapInfo = new DotNetHeapInfo();
-
-using var log = File.Open("gcdump.log", FileMode.Create);
-using var writer = new StreamWriter(log) { AutoFlush = true, };
 
 await Task.Delay(1000);
 
@@ -35,7 +37,10 @@ var dumpTask = Task.Run(async () =>
 {
     await Console.Console.WaitForUserInput("Running event pipe session, press Enter to run GC Dump...");
 
-     //This will wait until resumeruntime is called.
+    using var log = File.Open("gcdump.log", FileMode.Create);
+    using var writer = new StreamWriter(log) { AutoFlush = true, };
+
+    // This will wait until resumeruntime is called.
     bool result = EventPipeDotNetHeapDumper.DumpFromEventPipe(CancellationToken.None, process.Id, graph, writer, Timeout.Infinite, heapInfo);
     graph.AllowReading();
 
@@ -43,8 +48,6 @@ var dumpTask = Task.Run(async () =>
 });
 
 new DiagnosticsClient(process.Id).ResumeRuntime();
-
-Debug.Assert(graph != null);
 
 #endif
 
@@ -58,26 +61,36 @@ AnsiConsole.Write(graph.ToTable());
 // graph.DumpNormalized can be used to output the GC graph xml
 
 #if !V1
-var objects = graph.NodesOfType("MyObject");
 
 var refGraph = new RefGraph(graph);
-
 var spanningTree = new SpanningTree(graph, TextWriter.Null);
-
-var refStorage = refGraph.AllocNodeStorage();
 
 var typeStorage = graph.AllocTypeNodeStorage();
 var nodeStorage = graph.AllocNodeStorage();
 
-refGraph.PrintRetentionGraph(graph, new HashSet<NodeIndex>(), objects[0], 0, nodeStorage, typeStorage, refStorage);
+var refStorage = refGraph.AllocNodeStorage();
 
-Console.WriteLine();
-Console.Write(new Rule("Path to root"));
-Console.WriteLine();
+PrintDetails("MyObject$");
+PrintDetails("CycleObject$");
+PrintDetails("CycleObjectNative$");
 
-spanningTree.PrintNodes(objects, nodeStorage, typeStorage);
+void PrintDetails(string typeName)
+{
+    Console.Write(new Rule(Markup.Escape(typeName)));
 
+    var objects = graph.NodesOfType(typeName);
+    if (objects.Count == 0)
+    {
+        return;
+    }
+    refGraph.PrintRetentionGraph(graph, new HashSet<NodeIndex>(), objects[0], 0, nodeStorage, typeStorage, refStorage);
 
+    Console.WriteLine();
+    Console.Write(new Rule("Path to root"));
+    Console.WriteLine();
+
+    //spanningTree.PrintNodes(objects, nodeStorage, typeStorage);
+}
 
 #endif
 
@@ -89,7 +102,7 @@ static string GetOutputTraceFile()
     return outputTraceFile;
 }
 
-System.Diagnostics.Process StartLeakProcess(out string traceFilePath)
+static System.Diagnostics.Process StartLeakProcess(out string traceFilePath)
 {
     string path = Path.Combine(
         Path.GetDirectoryName(typeof(Program).Assembly.Location)!,
