@@ -20,7 +20,7 @@ static class KnownEventPipeProviders
     public static IEnumerable<EventPipeProvider> GarbageCollection { get; } = new[]
     {
         new EventPipeProvider("Microsoft-Windows-DotNETRuntime",
-            EventLevel.Informational, (long)gcEvents),
+            EventLevel.Verbose, (long)gcEvents),
     };
 }
 

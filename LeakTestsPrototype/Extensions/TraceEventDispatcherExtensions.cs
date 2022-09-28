@@ -1,17 +1,21 @@
 ﻿using System;
+using Graphs;
+using Microsoft.Diagnostics.Tools.GCDump;
 using Microsoft.Diagnostics.Tracing;
 
 namespace LeakTestsPrototype;
 
+#if V1
 static class TraceEventDispatcherExtensions
 {
-    public static bool SafeProcess(this TraceEventDispatcher dispatcher)
+    public static MemoryGraph? SafeProcess(this TraceEventDispatcher dispatcher, TextWriter log, int processId)
     {
-        bool result = false;
+        MemoryGraph? result = null;
 
         try
         {
-            result = dispatcher.Process();
+            var graphReader = new DotNetHeapDumpGraphReader(log);
+            result = graphReader.Read(dispatcher);
         }
         catch (Exception e)
         {
@@ -22,4 +26,5 @@ static class TraceEventDispatcherExtensions
         return result;
     }
 }
+#endif
 

@@ -8,6 +8,7 @@ using System.Text;
 
 namespace LeakTestsPrototype;
 
+#if V1
 sealed class EventProcessor
 {
     readonly int _processId;
@@ -27,7 +28,7 @@ sealed class EventProcessor
     }
 
     // TODO: Split this, we want some flexibility.
-    public async Task Stream(CancellationToken token)
+    public async Task<Graphs.MemoryGraph?> Stream(CancellationToken token)
     {
         // *shakes fist at dotnet internal diagnostics port API*
         var client = new DiagnosticsClient(_processId);
@@ -43,9 +44,22 @@ sealed class EventProcessor
             obj.ToXml(buffer);
         };
 
-        using var _ = token.Register(() => source.StopProcessing());
+        var exitTask = new TaskCompletionSource();
 
-        var processTask = Task.Run(() => source.SafeProcess(), token);
+        using var _ = token.Register(() => {
+            session.Stop();
+            source.StopProcessing();
+
+            exitTask.SetResult();
+        });
+
+        using var logFile = File.Open($"perfview.{_processId}.log", FileMode.Create);
+        using var streamWriter = new StreamWriter(logFile)
+        {
+            AutoFlush = true,
+        };
+
+        var processTask = Task.Run(() => source.SafeProcess(streamWriter, _processId), token);
 
         // Needed because we configured it to suspend.
         client.ResumeRuntime();
@@ -54,21 +68,22 @@ sealed class EventProcessor
 
         try
         {
-            await processTask.WaitAsync(token);
+            await Task.WhenAll(exitTask.Task, processTask);
+
+            Console.MarkupLine("[dim]Started writing output[/]");
+
+            File.WriteAllText("pipeoutput", buffer.ToString());
+
+            Console.MarkupLine("[underline]Done writing output[/]");
+
+            return await processTask;
         }
-        catch
+        finally
         {
-            // Interrupted.
+            // Just wait for it to end.
+            await session.StopAsync(CancellationToken.None);
         }
-
-        // Just wait for it to end.
-        await session.StopAsync(CancellationToken.None);
-
-        Console.MarkupLine("[dim]Started writing output[/]");
-
-        File.WriteAllText("pipeoutput", buffer.ToString());
-
-        Console.MarkupLine("[underline]Done writing output[/]");
     }
 }
 
+#endif
