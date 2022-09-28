@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Tools.GCDump;
 using Microsoft.Diagnostics.Tracing;
 using Spectre.Console;
 
-using var process = StartLeakProcess(out _);
+using var process = StartLeakProcess(out string traceFile);
 
 var graph = new MemoryGraph(50000);
 DotNetHeapInfo heapInfo = new DotNetHeapInfo();
@@ -32,10 +32,20 @@ var dumpTask = Task.Run(async () =>
 
 new DiagnosticsClient(process.Id).ResumeRuntime();
 
-await dumpTask;
+bool result = await dumpTask;
+Debug.Assert(result);
 
 process.Kill();
 process.WaitForExit();
+
+/* - This doesn't seem to work :(
+var dumpFile = Path.ChangeExtension(traceFile, "gcdump");
+GCHeapDump.WriteMemoryGraph(graph, dumpFile, "dotnet-gcdump");
+
+var fromDisk = new GCHeapDump(dumpFile);
+graph = fromDisk.MemoryGraph;
+graph.AllowReading();
+*/
 
 AnsiConsole.Write(graph.ToTable());
 

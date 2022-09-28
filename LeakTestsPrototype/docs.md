@@ -12,8 +12,6 @@ for a given object.
 One possible improvement would be to create an associated Type graph for the ref graph, which would
 then be used to group references with the same paths to roots.
 
-
-
 TODO: Dedup
 
 # Supporting documentation:

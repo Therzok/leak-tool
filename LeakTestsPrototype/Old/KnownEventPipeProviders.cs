@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if V1
+using System;
 using System.Diagnostics.Tracing;
 using Microsoft.Diagnostics.NETCore.Client;
 using Microsoft.Diagnostics.Tracing.Parsers;
@@ -24,3 +25,4 @@ static class KnownEventPipeProviders
     };
 }
 
+#endif

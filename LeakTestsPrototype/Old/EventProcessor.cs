@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if V1
+using System;
 using Microsoft.Diagnostics.NETCore.Client;
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
@@ -8,7 +9,6 @@ using System.Text;
 
 namespace LeakTestsPrototype;
 
-#if V1
 sealed class EventProcessor
 {
     readonly int _processId;

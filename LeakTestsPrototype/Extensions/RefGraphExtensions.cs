@@ -5,6 +5,7 @@ namespace LeakTestsPrototype.Extensions;
 
 public static class RefGraphExtensions
 {
+    // This should probably be a graph visitor implementation.
     public static void PrintRetentionGraph(this RefGraph refGraph, Graph graph, HashSet<NodeIndex> visited, NodeIndex index, int depth, Node nodeStorage, NodeType typeStorage, RefNode refStorage)
     {
         Console.Write(new string(' ', depth));

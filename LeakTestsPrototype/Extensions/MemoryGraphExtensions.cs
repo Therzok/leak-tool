@@ -18,6 +18,9 @@ static class MemoryGraphExtensions
             .AddColumn("Count")
             .AddColumn("Size");
 
+        table.AddRow("*", "All Objects", graph.NodeCount.ToString(), graph.TotalSize.ToString());
+        table.AddEmptyRow();
+
         foreach (var sizeAndCount in histogram)
         {
             var nodeType = graph.GetType(sizeAndCount.TypeIdx, storage);
